@@ -1,0 +1,20 @@
+{
+  "name": "sodexobot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThePicoNerd/sodexobot.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ThePicoNerd/sodexobot/issues"
+  },
+  "homepage": "https://github.com/ThePicoNerd/sodexobot#readme",
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "dotenv": "^8.0.0"
+  }
+}
