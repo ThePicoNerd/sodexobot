@@ -15,6 +15,7 @@
   "homepage": "https://github.com/ThePicoNerd/sodexobot#readme",
   "dependencies": {
     "discord.js": "^11.5.1",
-    "dotenv": "^8.0.0"
+    "dotenv": "^8.0.0",
+    "firebase-admin": "^8.3.0"
   }
 }

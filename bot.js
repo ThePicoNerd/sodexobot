@@ -2,18 +2,14 @@ require("dotenv").config();
 const Discord = require("discord.js");
 const client = new Discord.Client();
 
-const picChannel = "575993879837409290";
+const targetChannel = "575993879837409290";
 
-client.commands = new Discord.Collection();
-global.roles = {
-  admin: "575994137292046337"
-};
+const db = require("./firestore");
 
 client.on("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
   client.user.setActivity("Peppa Pig 4D", { type: "WATCHING" });
-
-  await refreshCache();
+  await updateDatabase();
 });
 
 client.on("message", handleMessage);
@@ -23,64 +19,82 @@ client.on("messageUpdate", async (oldMessage, newMessage) => {
 });
 
 async function handleMessage(message) {
-  let { id } = message.channel;
-
-  if (id === picChannel) {
-    return await refreshCache();
+  console.log("GOT MESSAGE!");
+  if (message.channel === targetChannel) {
+    return await updateDatabase();
   }
+}
+
+async function updateDatabase() {
+  let messages = await getMessages(targetChannel);
+
+  let docsToBeDeleted = {};
+
+  let authors = {};
+
+  await db
+    .collection("posts")
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        docsToBeDeleted[doc.id] = true;
+      });
+    });
+
+  await Promise.all(
+    messages.map(message => {
+      let attachments = message.attachments.array().map(attachment => {
+        return attachment.url;
+      });
+
+      let data = {
+        content: message.content,
+        author: message.author.id,
+        attachments,
+        timestamp: new Date(message.createdTimestamp)
+      };
+
+      docsToBeDeleted[message.id] = false;
+
+      authors[message.author.id] = {
+        username: message.author.username,
+        avatar: message.author.avatar,
+        id: message.author.id,
+        avatar_url: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}.png?size=256`
+      };
+
+      return db
+        .collection("posts")
+        .doc(message.id)
+        .set(data);
+    })
+  );
+
+  await Promise.all([
+    ...Object.entries(authors).map(entry => {
+      let [id, author] = entry;
+
+      return db
+        .collection("authors")
+        .doc(id)
+        .set(author);
+    }),
+    ...Object.entries(docsToBeDeleted).map(entry => {
+      if (entry[1]) {
+        return db
+          .collection("posts")
+          .doc(entry[0])
+          .delete();
+      }
+    })
+  ]);
+}
+
+async function getMessages(channelId) {
+  let channel = client.channels.get(channelId);
+  let messages = await channel.fetchMessages();
+
+  return messages;
 }
 
 client.login(process.env.DISCORD_TOKEN);
-
-async function refreshCache() {
-  let messages = await getMessages(picChannel);
-
-  cache = messages;
-
-  return cache;
-}
-
-async function getMessages(id) {
-  let channel = client.channels.get(id);
-  let messages = await channel.fetchMessages();
-
-  let pics = [];
-
-  let attachments = messages
-    .map(message => {
-      let attachments = message.attachments.array();
-
-      let files = attachments.map(attachment => attachment.url);
-
-      return {
-        message,
-        files
-      };
-    })
-    .filter(({ files }) => files.length > 0);
-
-  for (let attachment of attachments) {
-    for (let file of attachment.files) {
-      let {
-        message: { createdTimestamp, author, content }
-      } = attachment;
-
-      pics.push(
-        new Pic({
-          timestamp: createdTimestamp,
-          author: author.username,
-          caption: content,
-          url: file
-        })
-      );
-    }
-  }
-
-  cache = pics;
-
-  return pics;
-}
-
-async function getPics() {
-  return cache;
-}
