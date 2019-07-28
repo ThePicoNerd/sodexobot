@@ -5,6 +5,14 @@ const client = new Discord.Client();
 const targetChannel = "575993879837409290";
 
 const db = require("./firestore");
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  res.writeHead(302, {
+    "Location": "https://discord.gg/4hEnTpd"
+  });
+  return res.end();
+});
 
 client.on("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -98,3 +106,6 @@ async function getMessages(channelId) {
 }
 
 client.login(process.env.DISCORD_TOKEN);
+server.listen(process.env.PORT || 8080);
+
+console.log(`Listening on port ${process.env.PORT || 8080}`);
